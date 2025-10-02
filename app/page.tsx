@@ -1,48 +1,70 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Navbar } from '@/components/navbar';
-import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useAuth } from '@/components/auth-provider';
-import { Plus, GripVertical } from 'lucide-react';
+import { AddActivityDialog } from '@/components/add-activity-dialog';
+import { AddStoryDialog } from '@/components/add-story-dialog';
+import { GripVertical, Trash2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { getAllUserData, deleteActivity as deleteActivityAction, deleteStory as deleteStoryAction } from '@/lib/actions/database.actions';
+import { useRouter } from 'next/navigation';
 
 interface Story {
-  id: string;
+  $id: string;
   title: string;
   description: string;
   priority: 'high' | 'medium' | 'low';
+  activityId: string;
 }
 
 interface Activity {
-  id: string;
-  title: string;
+  $id: string;
+  name: string;
   stories: Story[];
 }
 
 export default function Home() {
-  const { user, loading } = useAuth();
-  const [activities, setActivities] = useState<Activity[]>([
-    {
-      id: '1',
-      title: 'User Management',
-      stories: [
-        { id: '1-1', title: 'Sign up', description: 'User can create account', priority: 'high' },
-        { id: '1-2', title: 'Sign in', description: 'User can login', priority: 'high' },
-        { id: '1-3', title: 'Profile', description: 'User can edit profile', priority: 'medium' },
-      ],
-    },
-    {
-      id: '2',
-      title: 'Story Mapping',
-      stories: [
-        { id: '2-1', title: 'Create map', description: 'Create new story map', priority: 'high' },
-        { id: '2-2', title: 'Add stories', description: 'Add user stories', priority: 'high' },
-        { id: '2-3', title: 'Organize', description: 'Drag and drop stories', priority: 'medium' },
-      ],
-    },
-  ]);
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    setLoading(true);
+    const result = await getAllUserData();
+    
+    if (!result.success) {
+      // Not authenticated, redirect to sign in
+      router.push('/sign-in');
+      return;
+    }
+    
+    if (result.data) {
+      setActivities(result.data.activities);
+      setUser(result.data.user);
+    }
+    setLoading(false);
+  };
+
+  const handleDeleteActivity = async (activityId: string) => {
+    const result = await deleteActivityAction(activityId);
+    if (result.success) {
+      await loadData(); // Reload to get fresh data
+    }
+  };
+
+  const handleDeleteStory = async (storyId: string) => {
+    const result = await deleteStoryAction(storyId);
+    if (result.success) {
+      await loadData(); // Reload to get fresh data
+    }
+  };
 
   if (loading) {
     return (
@@ -66,46 +88,64 @@ export default function Home() {
             <h1 className="text-3xl font-bold mb-2">My Story Map</h1>
             <p className="text-muted-foreground">Plan and organize your user stories</p>
           </div>
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            New Activity
-          </Button>
+          <AddActivityDialog onRefresh={loadData} />
         </div>
 
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {activities.map((activity) => (
-              <Card key={activity.id} className="p-4">
-                <div className="flex items-start gap-2 mb-4">
-                  <GripVertical className="h-5 w-5 text-muted-foreground cursor-move" />
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-lg">{activity.title}</h3>
+          {activities.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">No activities yet. Create your first activity to get started!</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {activities.map((activity) => (
+                <Card key={activity.$id} className="p-4">
+                  <div className="flex items-start gap-2 mb-4">
+                    <GripVertical className="h-5 w-5 text-muted-foreground cursor-move" />
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-lg">{activity.name}</h3>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDeleteActivity(activity.$id)}
+                      className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
-                </div>
-                
-                <div className="space-y-2">
-                  {activity.stories.map((story) => (
-                    <Card key={story.id} className="p-3 cursor-pointer hover:shadow-md transition-shadow">
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <h4 className="font-medium text-sm">{story.title}</h4>
-                        <Badge 
-                          variant={story.priority === 'high' ? 'destructive' : story.priority === 'medium' ? 'default' : 'secondary'}
-                          className="text-xs"
-                        >
-                          {story.priority}
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground">{story.description}</p>
-                    </Card>
-                  ))}
-                  <Button variant="ghost" size="sm" className="w-full mt-2">
-                    <Plus className="mr-2 h-3 w-3" />
-                    Add Story
-                  </Button>
-                </div>
-              </Card>
-            ))}
-          </div>
+                  
+                  <div className="space-y-2">
+                    {activity.stories.map((story) => (
+                      <Card key={story.$id} className="p-3 group relative hover:shadow-md transition-shadow">
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <h4 className="font-medium text-sm flex-1">{story.title}</h4>
+                          <div className="flex items-center gap-2">
+                            <Badge 
+                              variant={story.priority === 'high' ? 'destructive' : story.priority === 'medium' ? 'default' : 'secondary'}
+                              className="text-xs"
+                            >
+                              {story.priority}
+                            </Badge>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteStory(story.$id)}
+                              className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground">{story.description}</p>
+                      </Card>
+                    ))}
+                    <AddStoryDialog activityId={activity.$id} onRefresh={loadData} />
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
       </main>
     </div>

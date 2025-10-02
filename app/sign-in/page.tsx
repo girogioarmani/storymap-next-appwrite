@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { account } from '@/lib/appwrite';
+import { signIn } from '@/lib/actions/auth.actions';
 import { LogIn } from 'lucide-react';
 
 export default function SignInPage() {
@@ -23,8 +23,12 @@ export default function SignInPage() {
     setError('');
 
     try {
-      await account.createEmailPasswordSession(email, password);
-      router.push('/');
+      const result = await signIn({ email, password });
+      if (result.success) {
+        router.push('/');
+      } else {
+        setError(result.error || 'Failed to sign in');
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to sign in');
     } finally {

@@ -7,8 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { account } from '@/lib/appwrite';
-import { ID } from 'appwrite';
+import { signUp } from '@/lib/actions/auth.actions';
 import { UserPlus } from 'lucide-react';
 
 export default function SignUpPage() {
@@ -25,10 +24,12 @@ export default function SignUpPage() {
     setError('');
 
     try {
-      // TODO: Add email verification flow once Appwrite is configured
-      await account.create(ID.unique(), email, password, name);
-      await account.createEmailPasswordSession(email, password);
-      router.push('/');
+      const result = await signUp({ email, password, name });
+      if (result.success) {
+        router.push('/');
+      } else {
+        setError(result.error || 'Failed to sign up');
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to sign up');
     } finally {
