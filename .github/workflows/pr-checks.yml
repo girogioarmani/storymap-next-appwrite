@@ -1,0 +1,145 @@
+name: PR Checks
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  pr-info:
+    name: PR Information
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: PR Details
+        run: |
+          echo "### 📋 Pull Request Information" >> $GITHUB_STEP_SUMMARY
+          echo "- **Title:** ${{ github.event.pull_request.title }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Author:** @${{ github.event.pull_request.user.login }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Base:** \`${{ github.event.pull_request.base.ref }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Head:** \`${{ github.event.pull_request.head.ref }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Changed Files:** ${{ github.event.pull_request.changed_files }}" >> $GITHUB_STEP_SUMMARY
+
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      has-code: ${{ steps.filter.outputs.code }}
+      has-docs: ${{ steps.filter.outputs.docs }}
+      has-config: ${{ steps.filter.outputs.config }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check file changes
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            code:
+              - 'app/**'
+              - 'components/**'
+              - 'lib/**'
+              - '*.ts'
+              - '*.tsx'
+            docs:
+              - '**.md'
+              - 'docs/**'
+            config:
+              - 'package.json'
+              - 'tsconfig.json'
+              - 'next.config.ts'
+              - '.github/**'
+
+  size-check:
+    name: Bundle Size Check
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.has-code == 'true'
+    
+    steps:
+      - name: Checkout base
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Install dependencies (base)
+        run: npm ci
+
+      - name: Build base
+        run: npm run build
+        env:
+          NEXT_PUBLIC_APPWRITE_ENDPOINT: 'https://cloud.appwrite.io/v1'
+          NEXT_PUBLIC_APPWRITE_PROJECT_ID: 'ci-test-project'
+          NEXT_PUBLIC_APPWRITE_DATABASE_ID: 'ci-test-database'
+          NEXT_APPWRITE_KEY: 'ci-test-key'
+
+      - name: Get base size
+        id: base-size
+        run: |
+          BASE_SIZE=$(du -sb .next | cut -f1)
+          echo "size=$BASE_SIZE" >> $GITHUB_OUTPUT
+          echo "Base build size: $BASE_SIZE bytes"
+
+      - name: Checkout PR
+        uses: actions/checkout@v4
+        with:
+          clean: false
+
+      - name: Install dependencies (PR)
+        run: npm ci
+
+      - name: Build PR
+        run: npm run build
+        env:
+          NEXT_PUBLIC_APPWRITE_ENDPOINT: 'https://cloud.appwrite.io/v1'
+          NEXT_PUBLIC_APPWRITE_PROJECT_ID: 'ci-test-project'
+          NEXT_PUBLIC_APPWRITE_DATABASE_ID: 'ci-test-database'
+          NEXT_APPWRITE_KEY: 'ci-test-key'
+
+      - name: Get PR size
+        id: pr-size
+        run: |
+          PR_SIZE=$(du -sb .next | cut -f1)
+          echo "size=$PR_SIZE" >> $GITHUB_OUTPUT
+          echo "PR build size: $PR_SIZE bytes"
+
+      - name: Compare sizes
+        run: |
+          BASE_SIZE=${{ steps.base-size.outputs.size }}
+          PR_SIZE=${{ steps.pr-size.outputs.size }}
+          DIFF=$((PR_SIZE - BASE_SIZE))
+          PERCENT=$(awk "BEGIN {printf \"%.2f\", ($DIFF/$BASE_SIZE)*100}")
+          
+          echo "### 📦 Bundle Size Comparison" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Base | PR | Change |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|------|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Size (bytes) | $BASE_SIZE | $PR_SIZE | $DIFF ($PERCENT%) |" >> $GITHUB_STEP_SUMMARY
+          
+          if [ $DIFF -gt 100000 ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ **Warning:** Bundle size increased by more than 100KB" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  pr-summary:
+    name: PR Summary
+    runs-on: ubuntu-latest
+    needs: [pr-info, changes]
+    if: always()
+    
+    steps:
+      - name: Generate summary
+        run: |
+          echo "### 🎯 PR Check Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Changed Areas:**" >> $GITHUB_STEP_SUMMARY
+          echo "- Code Changes: ${{ needs.changes.outputs.has-code }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Documentation: ${{ needs.changes.outputs.has-docs }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Configuration: ${{ needs.changes.outputs.has-config }}" >> $GITHUB_STEP_SUMMARY
