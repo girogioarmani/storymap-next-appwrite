@@ -36,11 +36,11 @@ export async function createActivity(name: string) {
 
     revalidatePath('/');
     return { success: true, data: activity };
-  } catch (error: any) {
+  } catch (error) {
     console.error('Create activity error:', error);
     return { 
       success: false, 
-      error: error.message || 'Failed to create activity' 
+      error: error instanceof Error ? error.message : 'Failed to create activity' 
     };
   }
 }
@@ -64,11 +64,11 @@ export async function getActivities() {
     );
 
     return { success: true, data: response.documents };
-  } catch (error: any) {
+  } catch (error) {
     console.error('Get activities error:', error);
     return { 
       success: false, 
-      error: error.message || 'Failed to fetch activities' 
+      error: error instanceof Error ? error.message : 'Failed to fetch activities' 
     };
   }
 }
@@ -109,11 +109,11 @@ export async function deleteActivity(activityId: string) {
 
     revalidatePath('/');
     return { success: true };
-  } catch (error: any) {
+  } catch (error) {
     console.error('Delete activity error:', error);
     return { 
       success: false, 
-      error: error.message || 'Failed to delete activity' 
+      error: error instanceof Error ? error.message : 'Failed to delete activity' 
     };
   }
 }
@@ -165,11 +165,11 @@ export async function createStory(
 
     revalidatePath('/');
     return { success: true, data: story };
-  } catch (error: any) {
+  } catch (error) {
     console.error('Create story error:', error);
     return { 
       success: false, 
-      error: error.message || 'Failed to create story' 
+      error: error instanceof Error ? error.message : 'Failed to create story' 
     };
   }
 }
@@ -198,11 +198,11 @@ export async function getStoriesByActivity(activityId: string) {
     );
 
     return { success: true, data: response.documents };
-  } catch (error: any) {
+  } catch (error) {
     console.error('Get stories error:', error);
     return { 
       success: false, 
-      error: error.message || 'Failed to fetch stories' 
+      error: error instanceof Error ? error.message : 'Failed to fetch stories' 
     };
   }
 }
@@ -239,11 +239,11 @@ export async function deleteStory(storyId: string) {
 
     revalidatePath('/');
     return { success: true };
-  } catch (error: any) {
+  } catch (error) {
     console.error('Delete story error:', error);
     return { 
       success: false, 
-      error: error.message || 'Failed to delete story' 
+      error: error instanceof Error ? error.message : 'Failed to delete story' 
     };
   }
 }
@@ -312,14 +312,14 @@ export async function getAllUserData() {
       success: true, 
       data: {
         activities: activitiesWithStories,
-        user
+      user
       }
     };
-  } catch (error: any) {
+  } catch (error) {
     console.error('Get all user data error:', error);
     return { 
       success: false, 
-      error: error.message || 'Failed to fetch data',
+      error: error instanceof Error ? error.message : 'Failed to fetch data',
       data: null
     };
   }

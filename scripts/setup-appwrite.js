@@ -18,8 +18,10 @@
  *   APPWRITE_API_KEY=your_api_key node scripts/setup-appwrite.js
  */
 
-const { Client, Databases } = require('node-appwrite');
-require('dotenv').config({ path: '.env.local' });
+import { Client, Databases } from 'node-appwrite';
+import dotenv from 'dotenv';
+
+dotenv.config({ path: '.env.local' });
 
 // Configuration
 const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT || 'http://localhost/v1';

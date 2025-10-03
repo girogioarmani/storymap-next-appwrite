@@ -29,8 +29,8 @@ export default function SignInPage() {
       } else {
         setError(result.error || 'Failed to sign in');
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to sign in');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to sign in');
     } finally {
       setLoading(false);
     }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { createStory } from '@/lib/actions/database.actions';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -24,27 +25,39 @@ import {
 import { Plus } from 'lucide-react';
 
 interface AddStoryDialogProps {
-  onAdd: (story: { title: string; description: string; priority: 'high' | 'medium' | 'low' }) => void;
+  activityId: string;
+  onRefresh: () => Promise<void>;
 }
 
-export function AddStoryDialog({ onAdd }: AddStoryDialogProps) {
+export function AddStoryDialog({ activityId, onRefresh }: AddStoryDialogProps) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<'high' | 'medium' | 'low'>('medium');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (title.trim()) {
-      onAdd({
-        title: title.trim(),
-        description: description.trim(),
-        priority,
-      });
-      setTitle('');
-      setDescription('');
-      setPriority('medium');
-      setOpen(false);
+      setLoading(true);
+      setError('');
+      const result = await createStory(
+        activityId,
+        title.trim(),
+        description.trim(),
+        priority
+      );
+      if (result.success) {
+        setTitle('');
+        setDescription('');
+        setPriority('medium');
+        setOpen(false);
+        await onRefresh();
+      } else {
+        setError(result.error || 'Failed to create story');
+      }
+      setLoading(false);
     }
   };
 
@@ -65,6 +78,11 @@ export function AddStoryDialog({ onAdd }: AddStoryDialogProps) {
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
+            {error && (
+              <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md">
+                {error}
+              </div>
+            )}
             <div className="grid gap-2">
               <Label htmlFor="story-title">Story Title</Label>
               <Input
@@ -73,6 +91,7 @@ export function AddStoryDialog({ onAdd }: AddStoryDialogProps) {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 autoFocus
+                disabled={loading}
               />
             </div>
             <div className="grid gap-2">
@@ -83,6 +102,7 @@ export function AddStoryDialog({ onAdd }: AddStoryDialogProps) {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
+                disabled={loading}
               />
             </div>
             <div className="grid gap-2">
@@ -100,11 +120,11 @@ export function AddStoryDialog({ onAdd }: AddStoryDialogProps) {
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={loading}>
               Cancel
             </Button>
-            <Button type="submit" disabled={!title.trim()}>
-              Add Story
+            <Button type="submit" disabled={!title.trim() || loading}>
+              {loading ? 'Creating...' : 'Add Story'}
             </Button>
           </DialogFooter>
         </form>

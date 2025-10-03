@@ -1,12 +1,16 @@
 # StoryMap - Agile User Story Mapping
 
+![CI](https://github.com/agilemarc/storymap-next-appwrite/workflows/CI/badge.svg)
+
 A modern web application for creating and managing user story maps the agile way. Built with Next.js, Appwrite, and shadcn/ui.
 
 ## Features
 
 - 🔐 Email authentication with Appwrite
-- 🗺️ Interactive story mapping interface
-- 🎨 Modern UI with shadcn/ui and Tailwind CSS
+- 🗺️ Interactive story mapping interface with drag-and-drop
+- 📊 Activity & Story Management
+- 🚀 Release Planning
+- 🎨 Modern UI with Radix UI and Tailwind CSS
 - 📱 Responsive design
 - 🌙 Dark mode support
 
@@ -75,14 +79,23 @@ A modern web application for creating and managing user story maps the agile way
 - `npm run start` - Start production server
 - `npm run lint` - Run ESLint
 
-## TODO
+## Available Scripts
 
-- [ ] Add email verification flow
-- [ ] Implement drag-and-drop for stories
-- [ ] Add database persistence with Appwrite
-- [ ] Create collaborative features
-- [ ] Add export/import functionality
-- [ ] Implement real-time updates
+- `npm run dev` - Start development server with Turbopack
+- `npm run build` - Build for production
+- `npm start` - Start production server
+- `npm run lint` - Run ESLint
+- `npm run setup-db` - Set up Appwrite database schema
+- `npm run migrate-priorities` - Migrate priority data
+- `npm run add-releases` - Add releases schema
+
+## Documentation
+
+For more detailed information, check out these guides in the repository:
+
+- [Usage Guide](USAGE_GUIDE.md) - How to use the application
+- [Quick Start](QUICK_START.md) - Quick setup guide
+- [Implementation Status](IMPLEMENTATION_STATUS.md) - Feature completion status
 
 ## License
 

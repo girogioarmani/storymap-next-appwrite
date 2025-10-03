@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { createActivity } from '@/lib/actions/database.actions';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -16,19 +17,29 @@ import { Label } from '@/components/ui/label';
 import { Plus } from 'lucide-react';
 
 interface AddActivityDialogProps {
-  onAdd: (title: string) => void;
+  onRefresh: () => Promise<void>;
 }
 
-export function AddActivityDialog({ onAdd }: AddActivityDialogProps) {
+export function AddActivityDialog({ onRefresh }: AddActivityDialogProps) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (title.trim()) {
-      onAdd(title.trim());
-      setTitle('');
-      setOpen(false);
+      setLoading(true);
+      setError('');
+      const result = await createActivity(title.trim());
+      if (result.success) {
+        setTitle('');
+        setOpen(false);
+        await onRefresh();
+      } else {
+        setError(result.error || 'Failed to create activity');
+      }
+      setLoading(false);
     }
   };
 
@@ -49,6 +60,11 @@ export function AddActivityDialog({ onAdd }: AddActivityDialogProps) {
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
+            {error && (
+              <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md">
+                {error}
+              </div>
+            )}
             <div className="grid gap-2">
               <Label htmlFor="activity-title">Activity Title</Label>
               <Input
@@ -57,15 +73,16 @@ export function AddActivityDialog({ onAdd }: AddActivityDialogProps) {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 autoFocus
+                disabled={loading}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={loading}>
               Cancel
             </Button>
-            <Button type="submit" disabled={!title.trim()}>
-              Add Activity
+            <Button type="submit" disabled={!title.trim() || loading}>
+              {loading ? 'Creating...' : 'Add Activity'}
             </Button>
           </DialogFooter>
         </form>

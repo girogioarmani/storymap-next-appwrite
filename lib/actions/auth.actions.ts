@@ -1,6 +1,6 @@
 'use server';
 
-import { createAdminClient } from '@/lib/appwrite-server';
+import { createAdminClient, createSessionClient } from '@/lib/appwrite-server';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { ID } from 'node-appwrite';
@@ -42,11 +42,11 @@ export async function signUp(formData: {
     });
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error) {
     console.error('Sign up error:', error);
     return { 
       success: false, 
-      error: error.message || 'Failed to create account' 
+      error: error instanceof Error ? error.message : 'Failed to create account' 
     };
   }
 }
@@ -79,11 +79,11 @@ export async function signIn(formData: {
     });
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error) {
     console.error('Sign in error:', error);
     return { 
       success: false, 
-      error: error.message || 'Invalid email or password' 
+      error: error instanceof Error ? error.message : 'Invalid email or password' 
     };
   }
 }
@@ -94,24 +94,29 @@ export async function signIn(formData: {
  */
 export async function signOut() {
   try {
-    const { account } = await createAdminClient();
     const cookieStore = await cookies();
     const session = cookieStore.get('appwrite-session');
 
     if (session) {
-      // Delete the session in Appwrite
-      await account.deleteSession(session.value);
+      try {
+        // Use session client to delete the current session
+        const { account } = await createSessionClient();
+        await account.deleteSession('current');
+      } catch (error) {
+        // If session deletion fails (e.g., session expired), just log it
+        console.log('Session deletion failed:', error);
+      }
       
-      // Clear the cookie
+      // Always clear the cookie regardless of API call success
       cookieStore.delete('appwrite-session');
     }
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error) {
     console.error('Sign out error:', error);
     return { 
       success: false, 
-      error: error.message || 'Failed to sign out' 
+      error: error instanceof Error ? error.message : 'Failed to sign out' 
     };
   } finally {
     redirect('/sign-in');
@@ -124,7 +129,6 @@ export async function signOut() {
  */
 export async function getCurrentUser() {
   try {
-    const { account } = await createAdminClient();
     const cookieStore = await cookies();
     const session = cookieStore.get('appwrite-session');
 
@@ -132,9 +136,11 @@ export async function getCurrentUser() {
       return null;
     }
 
+    // Use session client to get authenticated user
+    const { account } = await createSessionClient();
     const user = await account.get();
     return user;
-  } catch (error) {
+  } catch {
     return null;
   }
 }
