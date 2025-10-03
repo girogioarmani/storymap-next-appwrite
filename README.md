@@ -1,6 +1,6 @@
 # StoryMap - Agile User Story Mapping
 
-![CI](https://github.com/agilemarc/storymap-next-appwrite/workflows/CI/badge.svg)
+![CI](https://github.com/girogioarmani/storymap-next-appwrite/workflows/CI/badge.svg)
 
 A modern web application for creating and managing user story maps the agile way. Built with Next.js, Appwrite, and shadcn/ui.
 
