@@ -1,6 +1,8 @@
 # StoryMap - Agile User Story Mapping
 
-![CI](https://github.com/girogioarmani/storymap-next-appwrite/workflows/CI/badge.svg)
+![CI](https://github.com/girogioarmani/storymap-next-appwrite/workflows/CI%20Pipeline/badge.svg)
+
+> 🧪 **Testing comprehensive CI/CD pipeline** - This PR demonstrates multi-stage testing, security audits, and bundle analysis.
 
 A modern web application for creating and managing user story maps the agile way. Built with Next.js, Appwrite, and shadcn/ui.
 
